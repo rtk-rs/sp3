@@ -1,6 +1,9 @@
 //! header parsing utilities
+pub(crate) mod descriptor;
 pub(crate) mod line1;
 pub(crate) mod line2;
+pub(crate) mod parsing;
+// pub(crate) mod formatting;
 
 pub mod version;
 
@@ -116,4 +119,6 @@ pub struct Header {
     pub epoch_interval: Duration,
     /// [SV] to be found in this record.
     pub satellites: Vec<SV>,
+    /// Comments, stored as is
+    pub comments: Vec<String>,
 }

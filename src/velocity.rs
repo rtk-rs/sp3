@@ -1,6 +1,6 @@
 //! Velocity entry parsing
-use crate::ParsingError;
-use crate::SV;
+use crate::prelude::{ParsingError, SV};
+use std::str::FromStr;
 
 pub fn velocity_entry(content: &str) -> bool {
     content.starts_with('V')
@@ -12,9 +12,12 @@ pub struct VelocityEntry {
     clock: Option<f64>,
 }
 
-impl std::str::FromStr for VelocityEntry {
-    type Err = ParsingError;
-    fn from_str(line: &str) -> Result<Self, Self::Err> {
+impl VelocityEntry {
+    pub fn to_parts(&self) -> (SV, (f64, f64, f64), Option<f64>) {
+        (self.sv, self.velocity, self.clock)
+    }
+
+    pub(crate) fn parse(line: &str) -> Result<Self, ParsingError> {
         let mut clock: Option<f64> = None;
         let sv =
             SV::from_str(line[1..4].trim()).or(Err(ParsingError::SV(line[1..4].to_string())))?;
@@ -38,11 +41,5 @@ impl std::str::FromStr for VelocityEntry {
             velocity: (x, y, z),
             clock,
         })
-    }
-}
-
-impl VelocityEntry {
-    pub fn to_parts(&self) -> (SV, (f64, f64, f64), Option<f64>) {
-        (self.sv, self.velocity, self.clock)
     }
 }

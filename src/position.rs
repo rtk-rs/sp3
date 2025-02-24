@@ -1,6 +1,6 @@
 //! Position & Clock data parsing
-use crate::ParsingError;
-use crate::SV;
+use crate::prelude::{ParsingError, SV};
+use std::str::FromStr;
 
 pub fn position_entry(content: &str) -> bool {
     content.starts_with('P')
@@ -18,9 +18,8 @@ pub struct PositionEntry {
     pub orbit_prediction: bool,
 }
 
-impl std::str::FromStr for PositionEntry {
-    type Err = ParsingError;
-    fn from_str(line: &str) -> Result<Self, Self::Err> {
+impl PositionEntry {
+    pub(crate) fn parse(line: &str) -> Result<Self, ParsingError> {
         let line_len = line.len();
 
         let mut clock_event = false;
@@ -172,7 +171,7 @@ mod test {
             ),
         ] {
             let sv = SV::from_str(sv).unwrap();
-            let entry = PositionEntry::from_str(content).unwrap();
+            let entry = PositionEntry::parse(content).unwrap();
             assert_eq!(entry.sv, sv);
             assert_eq!(entry.x_km, x_km);
             assert_eq!(entry.y_km, y_km);

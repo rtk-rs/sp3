@@ -10,20 +10,10 @@ use std::{
 use flate2::read::GzDecoder;
 
 use crate::{
-    header::{
-        line1::{is_header_line1, Line1},
-        line2::{is_header_line2, Line2},
-    },
     position::{position_entry, PositionEntry},
-    prelude::{
-        Constellation, Epoch, Error, Header, ParsingError, SP3Entry, SP3Key, TimeScale, SP3, SV,
-    },
+    prelude::{Epoch, Error, Header, ParsingError, SP3Entry, SP3Key, TimeScale, SP3, SV},
     velocity::{velocity_entry, VelocityEntry},
 };
-
-fn file_descriptor(content: &str) -> bool {
-    content.starts_with("%c")
-}
 
 fn sp3_comment(content: &str) -> bool {
     content.starts_with("/*")
@@ -73,7 +63,7 @@ impl SP3 {
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
         let fd = File::open(path).expect("file is not readable");
         let mut reader = BufReader::new(fd);
-        Self::from_reader(&mut reader)
+        Self::parse(&mut reader)
     }
 
     #[cfg(feature = "flate2")]
@@ -83,75 +73,27 @@ impl SP3 {
         let fd = File::open(path).expect("file is not readable");
         let fd = GzDecoder::new(fd);
         let mut reader = BufReader::new(fd);
-        Self::from_reader(&mut reader)
+        Self::parse(&mut reader)
     }
 
     /// Parse [SP3] data from [Read]able I/O.
-    pub fn from_reader<R: Read>(reader: &mut BufReader<R>) -> Result<Self, Error> {
+    pub fn parse<R: Read>(reader: &mut BufReader<R>) -> Result<Self, Error> {
         let mut pc_count = 0_u8;
         let mut header = Header::default();
         let mut timescale = TimeScale::default();
 
         let mut vehicles: Vec<SV> = Vec::new();
-        let mut comments = Vec::new();
         let mut data = BTreeMap::<SP3Key, SP3Entry>::new();
 
         let mut epoch = Epoch::default();
 
-        for line in reader.lines() {
-            let line = line.unwrap();
-            let line = line.trim();
+        let header = Header::parse(reader)?;
 
-            if sp3_comment(line) {
-                if line.len() > 4 {
-                    comments.push(line[3..].to_string());
-                }
-                continue;
-            }
+        for line in reader.lines() {
+            let line = line.unwrap().trim();
 
             if end_of_file(line) {
                 break;
-            }
-
-            if is_header_line1(line) && !is_header_line2(line) {
-                let l1 = Line1::from_str(line)?;
-                let (version, data_type, coord_system, orbit_type, agency) = l1.to_parts();
-                header.version = version;
-                header.data_type = data_type;
-                header.coord_system = coord_system;
-                header.orbit_type = orbit_type;
-                header.agency = agency;
-            }
-
-            if is_header_line2(line) {
-                let l2 = Line2::from_str(line)?;
-                let ((week_counter, week_sow), epoch_interval, (mjd_int, mjd_fract)) =
-                    l2.to_parts();
-
-                header.week_counter = week_counter;
-                header.week_sow = week_sow;
-
-                header.epoch_interval = epoch_interval;
-
-                header.mjd = mjd_int as f64;
-                header.mjd += mjd_fract;
-            }
-
-            if file_descriptor(line) {
-                if line.len() < 60 {
-                    return Err(Error::ParsingError(ParsingError::MalformedDescriptor(
-                        line.to_string(),
-                    )));
-                }
-
-                if pc_count == 0 {
-                    header.constellation = Constellation::from_str(line[3..5].trim())?;
-                    timescale = TimeScale::from_str(line[9..12].trim())?;
-
-                    header.timescale = timescale;
-                }
-
-                pc_count += 1;
             }
 
             if new_epoch(line) {
@@ -164,7 +106,7 @@ impl SP3 {
                     continue;
                 }
 
-                let entry = PositionEntry::from_str(line)?;
+                let entry = PositionEntry::parse(line)?;
 
                 //TODO : move this into %c config frame
                 if !vehicles.contains(&entry.sv) {
@@ -226,7 +168,7 @@ impl SP3 {
                     continue;
                 }
 
-                let entry = VelocityEntry::from_str(line)?;
+                let entry = VelocityEntry::parse(line)?;
                 let (sv, (vel_x_dm_s, vel_y_dm_s, vel_z_dm_s), clk_sub_ns) = entry.to_parts();
 
                 let (vel_x_km_s, vel_y_km_s, vel_z_km_s) = (
@@ -270,10 +212,6 @@ impl SP3 {
                 }
             }
         }
-        Ok(Self {
-            header,
-            data,
-            comments,
-        })
+        Ok(Self { header, data })
     }
 }

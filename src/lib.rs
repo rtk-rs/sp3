@@ -45,10 +45,13 @@ use anise::{
 #[cfg(test)]
 mod tests;
 
+mod formatting;
 mod header;
 mod parsing;
 mod position;
 mod velocity;
+
+pub mod error;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -57,6 +60,38 @@ use header::Header;
 use hifitime::Unit;
 
 type Vector3D = (f64, f64, f64);
+
+use std::str::FromStr;
+
+pub(crate) fn epoch_decomposition(t: &Epoch) -> (i32, u8, u8, u8, u8, u8, u32) {
+    let isofmt = t.to_gregorian_str(t.time_scale);
+    let mut datetime = isofmt.split('T');
+    let date = datetime.next().unwrap();
+    let mut date = date.split('-');
+
+    let time = datetime.next().unwrap();
+    let mut time_scale = time.split(' ');
+    let time = time_scale.next().unwrap();
+    let mut time = time.split(':');
+
+    let years = date.next().unwrap().parse::<i32>().unwrap();
+    let months = date.next().unwrap().parse::<u8>().unwrap();
+    let days = date.next().unwrap().parse::<u8>().unwrap();
+
+    let hours = time.next().unwrap().parse::<u8>().unwrap();
+    let mins = time.next().unwrap().parse::<u8>().unwrap();
+    let seconds = f64::from_str(time.next().unwrap()).unwrap();
+
+    (
+        years,
+        months,
+        days,
+        hours,
+        mins,
+        seconds.floor() as u8,
+        (seconds.fract() * 1E9).round() as u32,
+    )
+}
 
 pub mod prelude {
     pub use crate::{
@@ -255,8 +290,6 @@ impl SP3Entry {
 pub struct SP3 {
     /// File [Header]
     pub header: Header,
-    /// File header comments, stored as is.
-    pub comments: Vec<String>,
     /// File content are [SP3Entry]s sorted per [SP3Key]
     pub data: BTreeMap<SP3Key, SP3Entry>,
 }
@@ -271,52 +304,6 @@ pub enum Error {
     ConstellationParsing(#[from] ConstellationParsingError),
     #[error("File i/o error: {0}")]
     FileIo(#[from] IoError),
-}
-
-#[derive(Debug, Error)]
-pub enum ParsingError {
-    #[error("Non supported SP3 revision")]
-    NonSupportedRevision,
-    #[error("Unknown SP3 orbit type")]
-    UnknownOrbitType,
-    #[error("Unknown SP3 data type")]
-    UnknownDataType,
-    #[error("malformed header line #1")]
-    MalformedH1,
-    #[error("malformed header line #2")]
-    MalformedH2,
-    #[error("malformed %c line \"{0}\"")]
-    MalformedDescriptor(String),
-    #[error("failed to parse epoch year from \"{0}\"")]
-    EpochYear(String),
-    #[error("failed to parse epoch month from \"{0}\"")]
-    EpochMonth(String),
-    #[error("failed to parse epoch day from \"{0}\"")]
-    EpochDay(String),
-    #[error("failed to parse epoch hours from \"{0}\"")]
-    EpochHours(String),
-    #[error("failed to parse epoch minutes from \"{0}\"")]
-    EpochMinutes(String),
-    #[error("failed to parse epoch seconds from \"{0}\"")]
-    EpochSeconds(String),
-    #[error("failed to parse epoch milliseconds from \"{0}\"")]
-    EpochMilliSeconds(String),
-    #[error("failed to parse number of epochs \"{0}\"")]
-    NumberEpoch(String),
-    #[error("failed to parse week counter")]
-    WeekCounter(String),
-    #[error("failed to parse hifitime::Epoch")]
-    Epoch,
-    #[error("failed to parse sample rate from \"{0}\"")]
-    EpochInterval(String),
-    #[error("failed to parse mjd start \"{0}\"")]
-    Mjd(String),
-    #[error("failed to parse sv from \"{0}\"")]
-    SV(String),
-    #[error("failed to parse (x, y, or z) coordinates from \"{0}\"")]
-    Coordinates(String),
-    #[error("failed to parse clock data from \"{0}\"")]
-    Clock(String),
 }
 
 use crate::prelude::DataType;
@@ -477,7 +464,7 @@ impl SP3 {
 
     /// File comments [Iterator].
     pub fn comments_iter(&self) -> impl Iterator<Item = &String> + '_ {
-        self.comments.iter()
+        self.header.comments.iter()
     }
 
     /// Returns a unique [SV] iterator
