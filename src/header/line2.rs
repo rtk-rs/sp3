@@ -1,6 +1,6 @@
 //! header line #2 parsing helper
 
-use crate::prelude::{Duration, ParsingError};
+use crate::prelude::{Duration, FormattingError, ParsingError};
 
 use std::io::{BufWriter, Write};
 use std::str::FromStr;
@@ -47,21 +47,20 @@ impl Line2 {
     }
 
     pub fn format<W: Write>(&self, w: &mut BufWriter<W>) -> Result<(), FormattingError> {
-        let week_s = self.week_counter.1.integer().round() as u32;
+        let week_s = 0; // self.week_counter.1.integer().round() as u32;
         let week_nanos = (self.week_counter.1.fract() * 1.0E9).round() as u64;
 
-        let dt_s = self.epoch_interval.to_nanoseconds().integer().round() as u16;
+        let dt_s = 0; //self.epoch_interval.to_nanoseconds().integer().round() as u16;
 
-        let dt_nanos =
-            self.epoch_interval.total_nanoseconds() - (dt_seconds as u64) * 1_000_000_000;
+        let dt_nanos = self.epoch_interval.total_nanoseconds() - (dt_s as u64) * 1_000_000_000;
 
-        let mjd_s = self.mjd.1.integer.round() as u32;
+        let mjd_s = 0; // self.mjd.1.integer.round() as u32;
         let mut mjd_nanos = (self.mjd.1.fract() * 1.0E9).round() as u64;
         mjd_nanos -= mjd_s as u64 * 1_000_000_000;
 
         write!(
             w,
-            "##    {}          {}.{}        {}.         {:09}    {}.         {:09}   {}.         {:09}",
+            "##    {}          {}.{}        {}.         {:09}  {}  {}.         {:09}   {}.         {:09}",
             self.week_counter.0,
             week_s,
             week_nanos,

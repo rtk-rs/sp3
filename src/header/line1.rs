@@ -3,7 +3,7 @@
 use crate::{
     epoch_decomposition,
     header::{DataType, OrbitType, Version},
-    prelude::ParsingError,
+    prelude::{FormattingError, ParsingError},
 };
 
 use std::io::{BufWriter, Write};
@@ -80,32 +80,26 @@ impl Line1 {
     }
 
     pub fn format<W: Write>(&self, w: &mut BufWriter<W>) -> Result<(), FormattingError> {
-        let (y, m, d, hh, mm, ss, nanos) = epoch_decomposition(&self.epoch);
+        let (y, m, d, hh, mm, ss, nanos) = self.release_datetime;
 
         write!(
-            f,
+            w,
             "#{}{}{:04} {} {:2}  {}  {}  {}.{}    {} __u+U {} {}    {}",
-            self.version, self.data_type, self.coord_system, self.orbit_type, self.agency
+            self.version,
+            self.data_type,
+            y,
+            m,
+            d,
+            hh,
+            mm,
+            ss,
+            nanos,
+            0,
+            self.coord_system,
+            self.orbit_type,
+            self.agency
         )?;
 
-        Ok(Self {
-            epoch,
-            version: Version::from_str(&line[1..2])?,
-            data_type: DataType::from_str(&line[2..3])?,
-            coord_system: line[45..51].trim().to_string(),
-            orbit_type: OrbitType::from_str(line[51..55].trim())?,
-            agency: line[55..].trim().to_string(),
-        })
-    }
-
-    pub fn format<W: Write>(&self, w: &mut BufWriter<W>) -> Result<(), FormattingError> {
-        let (y, m, d, hh, mm, ss, nanos) = epoch_decomposition(&self.epoch);
-
-        write!(
-            f,
-            "#{}{}{:04} {} {:2}  {}  {}  {}.{}    {} __u+U {} {}    {}",
-            self.version, self.data_type, self.coord_system, self.orbit_type, self.agency
-        )?;
         Ok(())
     }
 }

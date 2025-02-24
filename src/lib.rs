@@ -95,8 +95,9 @@ pub(crate) fn epoch_decomposition(t: &Epoch) -> (i32, u8, u8, u8, u8, u8, u32) {
 
 pub mod prelude {
     pub use crate::{
+        error::{FormattingError, ParsingError},
         header::{version::Version, DataType, Header, OrbitType},
-        Error, ParsingError, SP3Entry, SP3Key, SP3,
+        Error, SP3Entry, SP3Key, SP3,
     };
     // Pub re-export
     pub use gnss::prelude::{Constellation, SV};
@@ -292,18 +293,6 @@ pub struct SP3 {
     pub header: Header,
     /// File content are [SP3Entry]s sorted per [SP3Key]
     pub data: BTreeMap<SP3Key, SP3Entry>,
-}
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Parsing error: {0}")]
-    ParsingError(#[from] ParsingError),
-    #[error("Epoch parsing error: {0}")]
-    HifitimeParsingError(#[from] EpochParsingError),
-    #[error("Constellation parsing error: {0}")]
-    ConstellationParsing(#[from] ConstellationParsingError),
-    #[error("File i/o error: {0}")]
-    FileIo(#[from] IoError),
 }
 
 use crate::prelude::DataType;

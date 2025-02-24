@@ -4,10 +4,14 @@ use crate::{
         line1::Line1,
         line2::Line2,
     },
-    prelude::{Header, ParsingError},
+    prelude::{FormattingError, Header, ParsingError},
 };
 
 use std::io::{BufRead, BufReader, Read};
+
+fn is_comment(line: &str) -> bool {
+    content.starts_with("/*")
+}
 
 impl Header {
     pub(crate) fn parse<R: Read>(r: &mut BufReader<R>) -> Result<Self, ParsingError> {
@@ -31,13 +35,15 @@ impl Header {
         header.week_counter = h2.week_counter;
         header.week_sow = h2.week_sow;
         header.epoch_interval = h2.epoch_interval;
-        header.mjd = h2.mjd_int as f64;
-        header.mjd += h2.mjd_fract;
+
+        header.mjd = h2.mjd.0 as f64;
+        header.mjd += h2.mjd.1;
 
         for line in r.lines() {
-            let line = line.unwrap().trim();
+            let line = line.unwrap();
+            let line = line.trim();
 
-            if sp3_comment(line) {
+            if is_comment(line) {
                 if line.len() > 4 {
                     header.comments.push(line[3..].to_string());
                 }

@@ -15,10 +15,6 @@ use crate::{
     velocity::{velocity_entry, VelocityEntry},
 };
 
-fn sp3_comment(content: &str) -> bool {
-    content.starts_with("/*")
-}
-
 fn end_of_file(content: &str) -> bool {
     content.eq("EOF")
 }
@@ -60,24 +56,28 @@ fn parse_epoch(content: &str, timescale: TimeScale) -> Result<Epoch, ParsingErro
 
 impl SP3 {
     /// Parse [SP3] data from local file.
-    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
-        let fd = File::open(path).expect("file is not readable");
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ParsingError> {
+        let fd = File::open(path).unwrap_or_else(|e| panic!("File open error: {}", e));
+
         let mut reader = BufReader::new(fd);
+
         Self::parse(&mut reader)
     }
 
     #[cfg(feature = "flate2")]
     #[cfg_attr(docsrs, doc(cfg(feature = "flate2")))]
     /// Parse [SP3] data from gzip encoded local file.
-    pub fn from_gzip_file(path: impl AsRef<Path>) -> Result<Self, Error> {
-        let fd = File::open(path).expect("file is not readable");
+    pub fn from_gzip_file(path: impl AsRef<Path>) -> Result<Self, ParsingError> {
+        let fd = File::open(path).unwrap_or_else(|e| panic!("File open error: {}", e));
+
         let fd = GzDecoder::new(fd);
         let mut reader = BufReader::new(fd);
+
         Self::parse(&mut reader)
     }
 
     /// Parse [SP3] data from [Read]able I/O.
-    pub fn parse<R: Read>(reader: &mut BufReader<R>) -> Result<Self, Error> {
+    pub fn parse<R: Read>(reader: &mut BufReader<R>) -> Result<Self, ParsingError> {
         let mut pc_count = 0_u8;
         let mut header = Header::default();
         let mut timescale = TimeScale::default();
@@ -90,7 +90,8 @@ impl SP3 {
         let header = Header::parse(reader)?;
 
         for line in reader.lines() {
-            let line = line.unwrap().trim();
+            let line = line.unwrap();
+            let line = line.trim();
 
             if end_of_file(line) {
                 break;
