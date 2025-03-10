@@ -63,13 +63,13 @@ impl std::str::FromStr for PositionEntry {
             }
         }
 
-        if line_len > 77 {
+        if line_len > 78 {
             if line[78..79].eq("M") {
                 maneuver = true;
             }
         }
 
-        if line_len > 78 {
+        if line_len > 79 {
             if line[79..80].eq("P") {
                 orbit_prediction = true;
             }
@@ -170,6 +170,18 @@ mod test {
                 false,
                 false,
             ),
+            (
+                "PG23      0.000000      0.000000      0.000000 999999.999999                  M",
+                "G23",
+                0.000000,
+                0.000000,
+                0.000000,
+                Some(999999.999999),
+                false,
+                false,
+                true,
+                false,
+            )
         ] {
             let sv = SV::from_str(sv).unwrap();
             let entry = PositionEntry::from_str(content).unwrap();
