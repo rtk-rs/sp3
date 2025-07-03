@@ -262,5 +262,5 @@ let gpst_sp3 = SP3::from_gzip_file(&path)
 
 ## License
 
-This library is part of the [RTK-rs framework](https://github.com/rtk-rs) which
-is delivered under the [Mozilla V2 Public](https://www.mozilla.org/en-US/MPL/2.0) license.
+The SP3 library is released under the [Mozilla V2 Public](https://www.mozilla.org/en-US/MPL/2.0) license.  
+The `nyx` feature is released under [AGPL v3](https://www.gnu.org/licenses/agpl-3.0.fr.html).

@@ -6,7 +6,7 @@
 /*
  * SP3 is part of the rtk-rs framework.
  * Authors: Guillaume W. Bres <guillaume.bressaix@gmail.com> et al.
- * (cf. https://github.com/rtk-rs/rinex/graphs/contributors)
+ * (cf. https://github.com/rtk-rs/sp3/graphs/contributors)
  * This framework is shipped under Mozilla Public V2 license.
  *
  * Documentation: https://github.com/rtk-rs/sp3
@@ -33,6 +33,10 @@ mod qc;
 #[cfg(feature = "processing")]
 #[cfg_attr(docsrs, doc(cfg(feature = "processing")))]
 mod processing;
+
+#[cfg(feature = "nyx-space")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nyx-space")))]
+mod nyx;
 
 #[cfg(feature = "anise")]
 use anise::{
